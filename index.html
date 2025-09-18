@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抽奖系统中心</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: #0c0c1d;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: #d0d0e6;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* 动态背景 */
+        .canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        
+        /* 主页样式 */
+        .home-page {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 100vh;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .home-title {
+            font-size: 4rem;
+            font-weight: 800;
+            color: #a99be5;
+            margin-bottom: 60px;
+            text-shadow: 0 0 15px rgba(169, 155, 229, 0.5);
+            animation: titleGlow 3s infinite alternate;
+        }
+        
+        @keyframes titleGlow {
+            0% { text-shadow: 0 0 10px rgba(169, 155, 229, 0.5); }
+            100% { text-shadow: 0 0 30px rgba(169, 155, 229, 0.8), 0 0 50px rgba(169, 155, 229, 0.5); }
+        }
+        
+        .systems-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            width: 100%;
+            margin-top: 30px;
+        }
+        
+        .system-card {
+            background: rgba(25, 25, 50, 0.8);
+            border-radius: 20px;
+            padding: 40px 30px;
+            transition: all 0.4s ease;
+            box-shadow: 0 15px 35px rgba(80, 70, 180, 0.2);
+            border: 1px solid rgba(100, 100, 200, 0.3);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        .system-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(80, 70, 180, 0.3);
+            border-color: rgba(169, 155, 229, 0.5);
+        }
+        
+        .system-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, #6a5bcf, #ff7aa2);
+            z-index: 2;
+        }
+        
+        .system-card.active {
+            background: rgba(40, 40, 70, 0.9);
+            border-color: rgba(169, 155, 229, 0.7);
+            box-shadow: 0 20px 40px rgba(80, 70, 180, 0.4);
+        }
+        
+        .system-card h2 {
+            color: #d0d0e6;
+            font-size: 2.2rem;
+            margin-bottom: 20px;
+        }
+        
+        .system-card p {
+            color: #a0a0c0;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+        
+        .system-icon {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            color: #a99be5;
+        }
+        
+        /* 导入成功弹窗 */
+        .import-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .import-modal-content {
+            background: linear-gradient(135deg, #1e1e3a 0%, #2a2a4a 100%);
+            border-radius: 25px;
+            width: 90%;
+            max-width: 500px;
+            padding: 40px;
+            box-shadow: 0 25px 60px rgba(80, 60, 150, 0.3);
+            position: relative;
+            border: 1px solid rgba(100, 100, 200, 0.3);
+            text-align: center;
+            animation: modalAppear 0.5s ease-out;
+        }
+        
+        @keyframes modalAppear {
+            0% { transform: translateY(50px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        
+        .import-modal-icon {
+            font-size: 5rem;
+            color: #6aef9f;
+            margin-bottom: 20px;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .import-modal-title {
+            font-size: 2.2rem;
+            color: #d0d0e6;
+            margin-bottom: 20px;
+        }
+        
+        .import-modal-text {
+            font-size: 1.4rem;
+            color: #a99be5;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        
+        .import-modal-btn {
+            background: linear-gradient(120deg, #6a5bcf 0%, #8a4ebf 100%);
+            color: white;
+            border: none;
+            padding: 16px 35px;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 7px 20px rgba(100, 80, 180, 0.3);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        .import-modal-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(100, 80, 180, 0.4);
+        }
+        
+        @media (max-width: 600px) {
+            .home-title {
+                font-size: 2.5rem;
+                margin-bottom: 40px;
+            }
+            
+            .system-card h2 {
+                font-size: 1.8rem;
+            }
+            
+            .import-modal-content {
+                padding: 30px 20px;
+            }
+            
+            .import-modal-icon {
+                font-size: 4rem;
+            }
+            
+            .import-modal-title {
+                font-size: 1.8rem;
+            }
+            
+            .import-modal-text {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="canvas-container">
+        <canvas id="bgCanvas"></canvas>
+    </div>
+    
+    <!-- 主页 -->
+    <div class="home-page">
+        <h1 class="home-title">抽奖系统中心</h1>
+        
+            <div class="systems-grid">
+        	<div class="system-card active" onclick="window.location.href='lottery_single.html'">
+    		<i class="fas fa-user system-icon"></i>
+    		<h2>单人抽奖系统</h2>
+    		<p>每次抽取一名获奖者的经典抽奖系统，适用于各种场合的抽奖活动。支持自定义速度和历史记录。</p>
+	    </div>
+
+	    <div class="system-card active" onclick="window.location.href='lottery_multiple.html'">
+   		 <i class="fas fa-users system-icon"></i>
+   		 <h2>多人抽奖系统</h2>
+    		 <p>每次可抽取多名获奖者的抽奖系统，适用于需要同时抽取多人的场合。支持自定义抽取人数和名单管理。</p>
+	    </div>
+            
+            <div class="system-card" onclick="showComingSoon()">
+                <i class="fas fa-trophy system-icon"></i>
+                <h2>奖项抽奖系统</h2>
+                <p>按奖项级别进行抽奖，从低价值奖品到高价值奖品逐步抽取。支持多级奖项设置和名单管理。</p>
+            </div>
+            
+            <div class="system-card" onclick="showComingSoon()">
+                <i class="fas fa-gift system-icon"></i>
+                <h2>礼品分发系统</h2>
+                <p>为参与者随机分配礼品，确保公平分配。支持多种礼品设置和分配规则定制。</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 导入成功弹窗 -->
+    <div class="import-modal" id="importModal">
+        <div class="import-modal-content">
+            <i class="fas fa-check-circle import-modal-icon"></i>
+            <h2 class="import-modal-title">名单导入成功！</h2>
+            <div class="import-modal-text" id="importSuccessText">成功导入 <span id="importCount">0</span> 个名字</div>
+            <button class="import-modal-btn" id="closeImportModal">确认</button>
+        </div>
+    </div>
+
+    <script>
+        // 动态背景 - 深色背景彩色粒子
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        
+        const particles = [];
+        const particleCount = 150;
+        
+        // 创建粒子
+        for (let i = 0; i < particleCount; i++) {
+            const hue = Math.random() * 360;
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 4 + 1,
+                speedX: (Math.random() - 0.5) * 1.5,
+                speedY: (Math.random() - 0.5) * 1.5,
+                color: `hsla(${hue}, 80%, 60%, ${Math.random() * 0.5 + 0.3})`
+            });
+        }
+        
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制半透明背景覆盖层（深色）
+            ctx.fillStyle = 'rgba(12, 12, 29, 0.2)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 更新和绘制粒子
+            for (let i = 0; i < particles.length; i++) {
+                const p = particles[i];
+                
+                // 更新位置
+                p.x += p.speedX;
+                p.y += p.speedY;
+                
+                // 边界检查
+                if (p.x < 0) p.x = canvas.width;
+                if (p.x > canvas.width) p.x = 0;
+                if (p.y < 0) p.y = canvas.height;
+                if (p.y > canvas.height) p.y = 0;
+                
+                // 绘制粒子
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+                
+                // 绘制连线
+                for (let j = i + 1; j < particles.length; j++) {
+                    const p2 = particles[j];
+                    const distance = Math.sqrt((p.x - p2.x) ** 2 + (p.y - p2.y) ** 2);
+                    
+                    if (distance < 120) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = `hsla(${Math.random() * 60 + 200}, 70%, 70%, ${0.15 * (1 - distance/120)})`;
+                        ctx.lineWidth = 0.8;
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            
+            requestAnimationFrame(animate);
+        }
+        
+        animate();
+        
+        // 功能函数
+        function showComingSoon() {
+            alert('该功能正在开发中，敬请期待！');
+        }
+        
+        // 模拟导入成功（仅用于演示）
+        document.getElementById('closeImportModal').addEventListener('click', function() {
+            document.getElementById('importModal').style.display = 'none';
+        });
+    </script>
+</body>
+</html>
